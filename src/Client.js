@@ -429,6 +429,32 @@ class Client extends EventEmitter {
     }
 
     /**
+     * Finds a tab by its host.
+     * @param {puppeteer.Browser} browser 
+     * @param {string} targetHost 
+     * @returns {Promise<puppeteer.Page | null>}
+     */
+    async findTabByHost(browser, targetHost) {
+        const pages = await browser.pages(); // List all existing tabs
+
+        const foundPage = pages.find(page => {
+            try {
+                const url = new URL(page.url());
+                return url.hostname === targetHost;
+            } catch (e) {
+                return null; // Skip if URL is invalid (e.g., 'about:blank')
+            }
+        });
+
+        if (foundPage) {
+            console.log(`Tab found with host: ${targetHost}`);
+            return foundPage;
+        }
+
+        console.log(`No tab found for host: ${targetHost}`);
+        return null;
+    }
+    /**
      * Sets up events and requirements, kicks off authentication request
      */
     async initialize() {
@@ -452,7 +478,8 @@ class Client extends EventEmitter {
             (puppeteerOpts.browserWSEndpoint || puppeteerOpts.browserURL)
         ) {
             browser = await puppeteer.connect(puppeteerOpts);
-            page = await browser.newPage();
+            page = await this.findTabByHost(browser, 'web.whatsapp.com');
+            if (!page) page = await browser.newPage();
         } else {
             const browserArgs = [...(puppeteerOpts.args || [])];
             if (
@@ -1400,8 +1427,8 @@ class Client extends EventEmitter {
                 content instanceof Buttons,
                 content instanceof List,
                 Array.isArray(content) &&
-                    content.length > 0 &&
-                    content[0] instanceof Contact,
+                content.length > 0 &&
+                content[0] instanceof Contact,
             ].includes(true)
         ) {
             console.warn(
@@ -1422,8 +1449,8 @@ class Client extends EventEmitter {
                 content instanceof Buttons,
                 content instanceof List,
                 Array.isArray(content) &&
-                    content.length > 0 &&
-                    content[0] instanceof Contact,
+                content.length > 0 &&
+                content[0] instanceof Contact,
             ].includes(true)
         ) {
             console.warn(
@@ -1805,10 +1832,10 @@ class Client extends EventEmitter {
             return !pinnedMsgs.length
                 ? []
                 : await Promise.all(
-                      pinnedMsgs.map((msg) =>
-                          window.WWebJS.getMessageModel(msg),
-                      ),
-                  );
+                    pinnedMsgs.map((msg) =>
+                        window.WWebJS.getMessageModel(msg),
+                    ),
+                );
         }, chatId);
 
         return pinnedMsgs.map((msg) => new Message(this, msg));
@@ -2110,9 +2137,9 @@ class Client extends EventEmitter {
                         .Chat.find(chatId));
                 action === 'MUTE'
                     ? await chat.mute.mute({
-                          expiration: unmuteDateTs,
-                          sendDevice: true,
-                      })
+                        expiration: unmuteDateTs,
+                        sendDevice: true,
+                    })
                     : await chat.mute.unmute({ sendDevice: true });
                 return {
                     isMuted: chat.mute.expiration !== 0,
@@ -2396,9 +2423,9 @@ class Client extends EventEmitter {
                                 window
                                     .require('WAWebCollections')
                                     .Chat.get(participant.wid) ||
-                                    (await window
-                                        .require('WAWebCollections')
-                                        .Chat.find(participant.wid)),
+                                (await window
+                                    .require('WAWebCollections')
+                                    .Chat.find(participant.wid)),
                                 createGroupResult.wid._serialized,
                                 createGroupResult.subject,
                                 participant.invite_code,
@@ -2663,11 +2690,11 @@ class Client extends EventEmitter {
 
                 countryCodes =
                     countryCodes.length === 1 &&
-                    countryCodes[0] === currentRegion
+                        countryCodes[0] === currentRegion
                         ? countryCodes
                         : countryCodes.filter((code) =>
-                              Object.keys(countryCodesIso).includes(code),
-                          );
+                            Object.keys(countryCodesIso).includes(code),
+                        );
 
                 const viewTypeMapping = {
                     0: 'RECOMMENDED',
@@ -2706,12 +2733,12 @@ class Client extends EventEmitter {
 
                 return channels
                     ? await Promise.all(
-                          channels.map((channel) =>
-                              window.WWebJS.getChatModel(channel, {
-                                  isChannel: true,
-                              }),
-                          ),
-                      )
+                        channels.map((channel) =>
+                            window.WWebJS.getChatModel(channel, {
+                                isChannel: true,
+                            }),
+                        ),
+                    )
                     : [];
             },
             searchOptions,
